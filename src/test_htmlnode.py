@@ -1,6 +1,6 @@
 import unittest
 
-from htmlnode import HTMLNode, LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 class TestHTMLNode(unittest.TestCase):
     def test_props_empty(self):
@@ -52,3 +52,47 @@ class TestLeafNode(unittest.TestCase):
     def test_leaf_node_no_tag(self):
         leaf = LeafNode(None, "This is raw text.")
         self.assertEqual(leaf.to_html(), "This is raw text.")
+        
+class TestParentNode(unittest.TestCase):
+    def test_to_html_with_children(self):
+        child_node = LeafNode("span", "child")
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(parent_node.to_html(), "<div><span>child</span></div>")
+        
+    def test_to_html_with_grandchildren(self):
+        grandchild_node = LeafNode("b", "grandchild")
+        child_node = ParentNode("span", [grandchild_node])
+        parent_node = ParentNode("div", [child_node])
+        self.assertEqual(
+            parent_node.to_html(),
+            "<div><span><b>grandchild</b></span></div>",
+        )
+    
+    def test_to_html_with_multiple_children(self):
+        child_node1 = LeafNode("span", "child1")
+        child_node2 = LeafNode("span", "child2")
+        parent_node = ParentNode("div", [child_node1, child_node2])
+        self.assertEqual(
+            parent_node.to_html(),
+            "<div><span>child1</span><span>child2</span></div>",
+        )
+        
+    def test_to_html_with_nested_parentnodes(self):
+        grandchild_node = LeafNode("b", "grandchild")
+        child_node = ParentNode("span", [grandchild_node])
+        parent_node = ParentNode("div", [child_node])
+        outer_parent_node = ParentNode("section", [parent_node])
+        self.assertEqual(
+            outer_parent_node.to_html(),
+            "<section><div><span><b>grandchild</b></span></div></section>",
+        )
+        
+    def test_to_html_with_no_tag(self):
+        with self.assertRaises(ValueError) as context:
+            ParentNode(None, [LeafNode("span", "child")]).to_html()
+        self.assertEqual(str(context.exception), "ParentNode tag attribute must have a value.")
+
+    def test_to_html_with_no_children(self):
+        with self.assertRaises(ValueError) as context:
+            ParentNode("div", None).to_html()
+        self.assertEqual(str(context.exception), "ParentNode children attribute must have a value.")
